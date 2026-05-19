@@ -1,0 +1,46 @@
+import cv2
+import numpy as np
+
+# 1. 读图
+img = cv2.imread('bed.png')
+if img is None:
+    print("❌ 错误：找不到图片，请检查文件名！")
+    exit()
+
+# 2. BGR -> HSV
+hsv = cv2.cvtColor(img, cv2.COLOR_BGR2HSV)
+
+# 3. HSV范围，适配粉色/红色
+lower_pink = np.array([140, 80, 80])
+upper_pink = np.array([179, 255, 255])
+
+# ② 偏红区间，保留以覆盖偏红部分
+lower_red = np.array([0, 80, 80])
+upper_red = np.array([10, 255, 255])
+
+# 4. 生成掩码（合并两个范围）
+mask_pink = cv2.inRange(hsv, lower_pink, upper_pink)
+mask_red = cv2.inRange(hsv, lower_red, upper_red)
+mask = cv2.bitwise_or(mask_pink, mask_red)
+
+# 关键修复：先开运算去噪，再闭运算补洞，边缘更光滑
+
+kernel = np.ones((5,5), np.uint8)  # 5x5核，去噪和光滑效果适中
+
+# 第一步：开运算（先腐蚀再膨胀），去掉背景小红点/噪点
+mask_clean = cv2.morphologyEx(mask, cv2.MORPH_OPEN, kernel, iterations=1)
+
+# 第二步：闭运算（先膨胀再腐蚀），补全掩码里的小缺口，让边缘更光滑
+mask_clean = cv2.morphologyEx(mask_clean, cv2.MORPH_CLOSE, kernel, iterations=1)
+
+# 5. 应用（处理后的干净掩码），生成最终结果
+result = cv2.bitwise_and(img, img, mask=mask_clean)
+
+# 6. 显示结果
+cv2.imshow('Original', img)
+cv2.imshow('Raw Mask', mask)
+cv2.imshow('Clean Mask', mask_clean)
+cv2.imshow('Final Result', result)
+
+cv2.waitKey(0)
+cv2.destroyAllWindows()
