@@ -55,7 +55,7 @@ for cnt in contours:
             if min(w, h) > 30:  # 过滤掉太细、太小的背景物体
                 target_contours.append(cnt)
 
-print(f"✅ 找到 {len(target_contours)} 个目标灯条")
+print(f" 找到 {len(target_contours)} 个目标灯条")
 
 #  四. 绘制轮廓 + 最小框选 
 for cnt in target_contours:
