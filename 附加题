@@ -1,0 +1,55 @@
+import cv2
+import numpy as np
+
+# 视频
+cap = cv2.VideoCapture("kkll.mp4")
+
+# 本子颜色的阈值
+lower_book = np.array([165, 60, 60])
+upper_book = np.array([180, 200, 200])
+
+while True:
+    ret, frame = cap.read()
+    if not ret:
+        break
+
+    hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
+    mask = cv2.inRange(hsv, lower_book, upper_book)
+
+    # 去噪处理，让掩码更干净
+    kernel = np.ones((7, 7), np.uint8)
+    mask = cv2.morphologyEx(mask, cv2.MORPH_CLOSE, kernel)
+    mask = cv2.morphologyEx(mask, cv2.MORPH_OPEN, kernel)
+
+    contours, _ = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+
+    if contours:
+        # 过滤掉面积太小的轮廓（过滤手、杂物）
+        big_contours = [c for c in contours if cv2.contourArea(c) > 2000]
+
+        if big_contours:
+            # 只取最大的那个轮廓（就是本子）
+            c = max(big_contours, key=cv2.contourArea)
+
+            # 多边形拟合（本子会变成四边形）
+            peri = cv2.arcLength(c, True)
+            approx = cv2.approxPolyDP(c, 0.04 * peri, True)
+
+            # 只画四边形（本子），不画手的不规则形状
+            if 3 <= len(approx) <= 6:
+                # 最小外接矩形（绿色框）
+                rect = cv2.minAreaRect(c)
+                box = cv2.boxPoints(rect)
+                box = np.int32(box)
+                cv2.drawContours(frame, [box], -1, (0, 255, 0), 3)
+                # 多边形拟合轮廓（蓝色线）
+                cv2.drawContours(frame, [approx], -1, (255, 0, 0), 3)
+
+    cv2.imshow("Book Detection", frame)
+    cv2.imshow("Mask", mask)  # 可以看到颜色分割效果
+
+    if cv2.waitKey(25) & 0xFF == ord('q'):
+        break
+
+cap.release()
+cv2.destroyAllWindows()
