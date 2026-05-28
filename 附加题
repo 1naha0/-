@@ -2,7 +2,7 @@ import cv2
 import numpy as np
 
 # 视频
-cap = cv2.VideoCapture("kkll.mp4")
+cap = cv2.VideoCapture("附加题.mp4")
 
 # 本子颜色的阈值
 lower_book = np.array([165, 60, 60])
